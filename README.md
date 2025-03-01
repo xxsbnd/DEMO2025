@@ -65,12 +65,12 @@
 11. Настройте часовой пояс на всех устройствах, согласно месту проведения экзамена.
 ## РЕШЕНИЕ МОДУЛЬ 1
 ### конфигурация доменного имени и имени устройства
-Изменяем в файле /etc/hostname ```<server-hostname>``` на необходимый хостнейм
-В файле /etc/hosts меняем строчку ```127.0.1.1 <server-hostname>``` на ```127.0.1.1 <domen> <hostanme>```
+Изменяем в файле `/etc/hostname` ```<server-hostname>``` на необходимый хостнейм
+В файле `/etc/hosts` меняем строчку ```127.0.1.1 <server-hostname>``` на ```127.0.1.1 <domen> <hostanme>```
 Пример: 
 ![alt text](sources/images/image4.png)
 
-В файле /etc/resolv.conf меняем строку domain на наш домен. Пример: 
+В файле `/etc/resolv.conf` меняем строку domain на наш домен. Пример: 
 ![alt text](sources/images/image5.png)
 
 ### Сетевая конфигурация
@@ -82,9 +82,9 @@
 
 От 192.168.0.0 до 192.168.255.255 
 
-#### Настройка ip-адреса 
+### Настройка ip-адреса 
 
-В файле /etc/network/interfaces добавляем необходимые записи следующего вида: 
+В файле `/etc/network/interfaces` добавляем необходимые записи следующего вида: 
 
 ```
 allow-hotplug <int>
@@ -94,29 +94,29 @@ netmask <mask>
 gateway <ip>
 ```
 
-#### Динамическая трансляция адресов
+### Динамическая трансляция адресов
 
-Создаем скрипт по адресу /etc/iptables.sh, где WAN - интерфейс в интернет
+Создаем скрипт по адресу `/etc/iptables.sh`, где WAN - интерфейс в интернет
 
 ![alt text](sources/images/image6.png)
 
-Далее прописываем ```chmod +x /ets/iptables.sh```
+Далее прописываем ```chmod +x /etc/iptables.sh```
 
-Дописываем в /etc/network/interfaces строку ```post-up iptables-restore < /etc/iptables.rules```
+Дописываем в `/etc/network/interfaces` строку ```post-up iptables-restore < /etc/iptables.rules```
 
 запускаем скрипт ```/etc/iptables.sh```
 
-Меняем в файле /etc/sysctl.conf значение на ```net.ipv4.ip_forward = 1``` 
+Меняем в файле `/etc/sysctl.conf` значение на ```net.ipv4.ip_forward = 1``` 
 
 Применяем настройку командой ```sysctl -p```
 
-#### Настройка VLAN
+### Настройка VLAN
 
 Устанавливаем пакеты ```vlan bridge-utils```
 
 прописываем ```modprobe 8021q``` и ```echo "8021q" | tee -a /etc/modules```
 
-В /etc/network/interfaces добавляем интерфейсы для вланов 
+В `/etc/network/interfaces` добавляем интерфейсы для вланов 
 ```
 auto <vlanname>
 iface <vlanname> inet static
@@ -127,8 +127,35 @@ vlan-raw-device <int>
 
 Делаем это на всех машинах участующих в vlan 
 
-#### Создание пользователя 
+### Создание пользователя 
 ```
 useradd -u 1010 -m -s /bin/bash sshuser
 echo "sshuser:P@ssw0rd" | chpasswd
 ```
+Добавляем пользователя в группу sudo, чтобы он мог ее использовать 
+
+```usermod -aG sudo sshuser```
+
+С помощью команды `visudo` добавляем строчку для использования sudo без пароля. Возможно понадобится прописать эту же строчку но ниже `%sshuser ... ...`
+
+![alt text](sources/images/image7.png)
+
+### Настройка ssh сервера
+
+Установка: ```apt-get install openssh-server```
+
+В файле issue.net меняем текст на необходимый. 
+
+В файле /etc/ssh/sshd_config меняем строчку port на Port <port>
+
+![alt text](sources/images/image8.png)
+
+Изменяем эти строчки для максимального кол-ва авторизации и авторизации только для определенных пользователей:
+
+![alt text](sources/images/image9.png)
+
+Изменяем эту строчку, добавив путь до файла /etc/issue.net:
+
+![alt text](sources/images/image10.png)
+
+### Конфигурация ip туннель
