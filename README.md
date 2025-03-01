@@ -160,20 +160,75 @@ echo "sshuser:P@ssw0rd" | chpasswd
 
 ### Конфигурация ip туннель
 
-Создаем файл скритпа для поднятия gre туннеля ```touch /etc/gre.tun ```
+Создаем файл скритпа на 2ух машинах для поднятия gre туннеля ```touch /etc/gre.tun ```
 
 Далее прописываем ```chmod +x /etc/gre.tun```
 
 В файле /etc/gre.tun прописываем следующие:
 ```
 #!/bin/bash
-ip tunnel del gre1:
-ip tunnel add gre1: mode gre remote (ip BR-RTR) local (ip HQ-RTR)ttl 255
-ip addr add 172.16.0.1/30 perr 172.16.0.2/30 dev gre1
+ip tunnel del gre1
+ip tunnel add gre1 mode gre remote (ip remote) local (ip local) ttl 255
+ip addr add (ip remote) peer (ip local) dev gre1
 ip link set gre1 up 
 ```
+P.S (ip remote = машина на которй дожен быть 2ой туннель) (ip local = машина на который мы проводим настройку)  
+
 Добавляем наш gre туннель в конфигурационные файл (/etc/network/interfaces) на HQ-RTR и BR-RTR
 
-```post-up /etc/gre.tun```
+```post-up /etc/gre.tun``` 
 
+### Обеспечение динамической маршрутизации
 
+Качаем пакет ```apt-get install frr```
+
+Меняем строчку ospfd с “no” на “yes” в конфиг файле /etc/frr/daemons
+
+Далее провдим настройку (на двух машинах) frr в файле  /etc/frr/frr.conf 
+```
+hostname "local hostname"
+log syslog informational 
+no ipv6 forwarding 
+service integrated-vtysh-config
+!
+router ospf 
+ network ip (сеть нашего gre туннеля) area 0.0.0.0
+ network ip (сеть подключенного устройства) area 0.0.0.0
+!
+interface gre1
+ ip address (ip gre туннеля у данного локального устройства )
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 root
+```
+Далее проводим проверку работоспособность (на двух машинах) командой ```vtysh -c "show ip ospf neighbor"```
+
+### Настройка протокола динамической конфигурации хостов
+
+Качаем пакет ```apt-get install isc-dhcp-server``` 
+
+Далее заходим в файл /etc/dhcp/dhcpd.conf
+Прописываем:
+
+```
+subnet (сеть которая идет к клиенту, пример 192.168.1.0) netmask 255.255.255.240 {
+  range (интервал ip адресов, пример 192.168.1.2 192.168.1.14;)
+  option routers (сеть gateway, пример 192.168.1.1;)
+  option domain-name-servers ( сеть dns, пример 192.168.0.2;
+  option domain-name (имя домена "au-team.irpo"); 
+}
+
+host (имя устройства привер HQ-RTR) {
+  fixed-address сеть нашего устройства; 
+}
+```
+Далее меняем конфиг /etc/default/isc-dhcp-server
+```
+INTERFACESv4= ("интерфейс или же в нашем случае vlan пример vlan200")
+INTERFACESv6=""
+```
+Далее настройка клиента /etc/network/interfaces 
+```
+auto (название интерфейса пример ens33)
+iface ens33 inet dhcp 
+```
+Проверка работоспособности командой ip a
