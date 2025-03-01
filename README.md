@@ -159,3 +159,21 @@ echo "sshuser:P@ssw0rd" | chpasswd
 ![alt text](sources/images/image10.png)
 
 ### Конфигурация ip туннель
+
+Создаем файл скритпа для поднятия gre туннеля ```touch /etc/gre.tun ```
+
+Далее прописываем ```chmod +x /etc/gre.tun```
+
+В файле /etc/gre.tun прописываем следующие:
+```
+#!/bin/bash
+ip tunnel del gre1:
+ip tunnel add gre1: mode gre remote (ip BR-RTR) local (ip HQ-RTR)ttl 255
+ip addr add 172.16.0.1/30 perr 172.16.0.2/30 dev gre1
+ip link set gre1 up 
+```
+Добавляем наш gre туннель в конфигурационные файл (/etc/network/interfaces) на HQ-RTR и BR-RTR
+
+```post-up /etc/gre.tun```
+
+
