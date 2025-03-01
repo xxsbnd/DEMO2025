@@ -228,7 +228,7 @@ INTERFACESv6=""
 ```
 Далее настройка клиента /etc/network/interfaces 
 ```
-auto (название интерфейса или в нашем случае vlan пример vlan200)
+auto (название интерфейса или в нашем случае vlan пример, vlan200)
 iface vlan200 inet dhcp 
 vlan-raw-device (название интерфейса, пример ens33)
 ```
