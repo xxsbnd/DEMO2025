@@ -433,3 +433,6 @@ sysеtemctl deamon-reload
 Проверяем на клиенте  HQ-CLI
 ```cat /mnt/nfs/test.txt```
 
+### Настройка службы сетевого времени на базе сервиса chrony
+
+Устанавливаем chrony ```apt install chrony```
