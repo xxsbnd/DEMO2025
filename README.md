@@ -369,18 +369,67 @@ pong на команду ping в ansible посланную с BR-SRV
 
 Проверяем диск командой lsblk
 
-Создаем массив mdadm --create /dev/<название массива> --level=<Версия RAID> --raid-devices=<Количество устройств для массива> /dev/<Диск 1> ... /dev/<Диск n>
+Создаем массив 
+```mdadm --create /dev/<название массива> --level=<Версия RAID> --raid-devices=<Количество устройств для массива> /dev/<Диск 1> ... /dev/<Диск n>```
 
-Отфармотировали раздел командой mkfs -t ext4 /dev/название массива 
+Конфигурация массива размещаем в файле командой 
+```mdadm --detail --scan | tee -a /etc/mdadm.conf```
+
+Далее вводим команду ```sudo update-initramfs -u ```
+
+Отфармотировали раздел командой ```mkfs -t ext4 /dev/название массива```
 
 Создаем папку и монтируем раздел туда 
 ```
 mkdir /etc/(название папки,пример raid5)
 mount /dev/(название массива) /(название папки)
+```
+
+Автомонтируем папку:
+![alt text](sources/images/image15.png)
+
+Устанавливаем NFS ```apt-get install nfs-kernel-server -y```
+
+Создаем папку ```/(название корневой папки)/nfs```
+```
+mkdir /etc/(название корневой папки)/nfs
+chmod -R 777 /etc/(название корневой папки)/nfs/
 
 ```
-Настраиваем доступ к папке в файле /etc/exports 
+
+Настраиваем доступ к папке в файле ```/etc/exports ```
 ```
-/etc/(название паки с массивом)/nfs ()(rw,sync,no_subnet_check)
+/etc/(название паки с массивом)/nfs (сеть к клиенту)(rw,sync,no_subnet_check)
 
 ```
+Применяем конфигурацию и проверяем доступность.
+``` 
+  exportfs -arv
+
+  systemctl restart nfs-kernel-server
+
+  exportfs -v
+```
+
+Установка пакетов на клиенте 
+```
+apt install nfs-common
+```
+Создаем папку для монтирования 
+```mkdir -p /mnt/nfs```
+
+Редактируем файл ```/etc/fstab```, пишем в конце 
+```(сеть сервера):/etc/(название корневой папки)/nfs /mnt/nfs nfs defaults    0     0```
+
+Монтируем 
+```
+sudo mount -a
+sysеtemctl deamon-reload
+
+```
+Проверяем на на сервере HQ-SRV 
+```echo "Hello, NFS!" | tee /etc/(название корневой папки)/nfs/test.txt```
+
+Проверяем на клиенте  HQ-CLI
+```cat /mnt/nfs/test.txt```
+
