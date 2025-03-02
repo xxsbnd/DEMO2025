@@ -233,3 +233,49 @@ iface vlan200 inet dhcp
 vlan-raw-device (название интерфейса, пример ens33)
 ```
 Проверка работоспособности командой ip a
+
+### Настройка DNS
+
+Установка пакета для разворачивания DNS - сервера: ```apt-get install bind9```
+
+Далее конфигурируем зоны в файле ```/etc/bind/named.conf.local```, добавляя соответствующие записи:
+
+Прямая зона (записи типа А, CNAME)
+```
+zone "domain" {
+  type master; 
+  file "<zone file>"; 
+};
+```
+Обраная зона (записи типа PTR)
+```
+zone "<ip пример: (100.168.192)>.in-addr.arpa" {
+  type master;
+  file "<zone file>";
+}
+```
+zone file - файл содержащий конфигурацию зоны, создается обычно по пути /etc/bind/<zone>. Для простоты можно скопировать уже существующий файл и изменить его ```cp /etc/bind/db.local /etc/bind/<zone filename>```
+
+Конфигурация сервиса bind9: в файле /etc/bind/named.conf.options
+
+![alt text](sources/images/image11.png)
+
+Конфигурация прямой зоны: 
+
+![alt text](sources/images/image12.png)
+
+Конфигурация обратных зон:
+
+![alt text](sources/images/image13.png)
+
+![alt text](sources/images/image14.png)
+
+Проверка:
+
+`named-checkconf`
+
+`named-checkzone <zone> <file>`
+
+### Установка времени 
+
+``` timedatectl set-timezone Europe/Moscow```
