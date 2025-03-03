@@ -466,3 +466,140 @@ server (Название эталонной машины, пример HQ-RTR) i
 В случе не корректной работы с отображение клиентов или подситей, на машине где есть эта проблема, в файле ```/etc/iptables.sh``` вводим сторчку ```iptables -t nat -A POSTROUTING -d (Сеть NTP сервера, пример 172.16.4.0/28) -j ACCEPT``` 
 
 Далее на NTP сервере командой ```cronyc clients``` проверяем какие устройства к нему подключенны
+
+### Конфигурирование ansible на сервере BR-SRV
+
+Скачиваенм пакет ansible ```apt install ansible```
+
+Создаем папку ```sudo mkdir -p /etc/ansible```
+
+Создаем нового пользователя на всех устройствах ```adduser ansible```
+
+Если мы на машине прописывали разрешенных пользователей, то туда надо добавить нашего нового пользователя  ```user ansible```
+
+На всех устройставх из задания устанавливаем пакет sshd ```apt install openssh-server```
+
+Далее заходим файл ```/etc/ssh/sshd_config```, раскоментируем строчку "PubkeyAuthentication yes"
+
+Далее на ansible сервере заходим в файл ```/etc/ansible/hosts ```
+И прописываем следующие:
+```
+[routers]
+hq-rtr ansible_host=(ip адрес устройства, пример 172.16.4.2) ansible_ssh_port=(номер порта sshd, пример 22) ansible_ssh_user=ansible 
+br-rtr ansible_host=(ip адрес устройства, пример 172.16.5.2) ansible_ssh_port=(номер порта sshd, пример 22)ansible_ssh_user=ansible 
+
+[HQ]
+hq-srv ansible_host=(номер порта sshd, пример 2024)ansible_ssh_user=ansible
+hq-cli ansible_host=(номер порта sshd, пример 22)ansible_ssh_user=ansible
+```
+Генерируем ssh ключ на ansible сервере ```ssh-keygen```
+
+На сервере ansible прописываем команду ```ssh-copy-id -p (номер порта sshd, пример 22) ansible@(ip адрес машины которую добавляем , пример 172.16.4.2)``` , эту команнду воодим для всех машин которые мы должны добавить 
+
+Проводим проверку работоспособности командой ```ansible all -m ping -i /etc/ansible/hosts```
+
+Пример правельного выполнения задание , после проверки:
+![alt text](sources/images/image16.png)
+
+### Развертывание приложений в Docker на сервере BR-SRV
+
+Скачиываем пакет ```apt install docker-compose```
+
+Настройки wiki.yml ```nano wiki.yml``` 
+![alt text](sources/images/image17.png)
+
+Настроиваем через браузер
+![alt text](sources/images/image18.png)
+
+Перенесем файл туда где установлен наш wiki.yml 
+```
+ls /home/(название нашего пользователя, пример sshuser)
+mv /home/(название нашего пользователя, пример sshuser)/(путь который нам показала предыдущая команда) /home/root/
+ls
+
+```
+
+Новый файл wiki.yml
+![alt text](sources/images/image19.png)
+
+Далее перезапускаем котейнеры 
+```
+docker-compose -f wiki.yml down
+docker-compose -f wiki.yml up -d
+
+```
+
+Перезагружаем страницу и вводим код 
+![alt text](sources/images/image20.png)
+
+Проверяем рабочую wiki
+![alt text](sources/images/image21.png)
+
+### На маршрутизаторах сконфигурируйте статическую трансляцию портов
+
+Проброс портов на BR-RTR, заходим и редактируем файл ```/etc/iptables.sh```
+![alt text](sources/images/image23.png)
+
+Проверяем работоспособность на клиенте, командой ```ssh -p 2024 sshuser@(ip адресс BR-RTR)```
+
+Проброс портов на HQ-RTR, заходим и редактируем файл ```/etc/iptables.sh```
+![alt text](sources/images/image22.png)
+
+Проверяем работоспособность на клиенте, командой ```ssh -p 2024 sshuser@(ip адресс HQ-RTR)```
+
+### Запуск сервис moodle на сервере HQ-SRV:
+
+Установим все необходимые пакеты 
+``` apt-get install apache2 mariadb-server php php-mysql libapache2-mod-php php-xml php-mbstring php-zip php-curl php-gd unzip ```
+
+Создаем бд для moodle
+![alt text](sources/images/image24.png)
+
+Скачиваем moodle 
+![alt text](sources/images/image25.png)
+
+Распаковываем файл командой ```unzip <filename>```
+Желательно распаковывать сразу в /var/www/html
+
+Меняем права на папке moodle
+```
+chown -R www-data:www-data /var/www/html
+chown -R www-data:www-data /var/www/html/modle
+chown -R 755 /var/www/html
+chown -R 755 /var/www/html/modle
+
+```
+
+Создаем новый кофигурационный файл для апачи 
+
+```touch /etc/apache2/sites-available/moodle.conf```
+
+```cp /etc/appache2/sites-available/000-default.conf /etc/apache2/sites-available/moodle.conf```
+
+![alt text](sources/images/image26.png)
+
+![alt text](sources/images/image27.png)
+
+Активируем сайт на HQ-SRV 
+```/var/www/html# a2ensite moodle.conf ```
+```/var/www/html# systemctl reload apache2 ```
+
+Переходим на сайт и начинаем конфигурацию 
+![alt text](sources/images/image28.png)
+
+Далее на HQ-SRV вводим команды 
+```
+mkdir /var/moodledata
+chown -R www-data /var/moodledata
+chmod -R 755 /var/moodledata
+```
+![alt text](sources/images/image29.png)
+
+![alt text](sources/images/image30.png)
+
+![alt text](sources/images/image31.png)
+
+Доустанавливаем все необходимые пакеты и поставим разрешения
+```apt-get install php-intl```
+
+
