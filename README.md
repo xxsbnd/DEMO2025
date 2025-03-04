@@ -169,7 +169,7 @@ echo "sshuser:P@ssw0rd" | chpasswd
 #!/bin/bash
 ip tunnel del gre1
 ip tunnel add gre1 mode gre remote (ip remote) local (ip local) ttl 255
-ip addr add (ip remote) peer (ip local) dev gre1
+ip addr add (ip tun remote) peer (ip tun local) dev gre1
 ip link set gre1 up 
 ```
 P.S (ip remote = машина на которй дожен быть 2ой туннель) (ip local = машина на который мы проводим настройку)  
@@ -217,8 +217,8 @@ subnet (сеть которая идет к клиенту, пример 192.168
   option domain-name (имя домена "au-team.irpo"); 
 }
 
-host (имя устройства привер HQ-RTR) {
-  fixed-address сеть нашего устройства; 
+host (имя устройства пример HQ-RTR) {
+  fixed-address ip нашего устройства; 
 }
 ```
 Далее меняем конфиг /etc/default/isc-dhcp-server
